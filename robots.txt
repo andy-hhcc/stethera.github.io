@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /
+Sitemap: https://new.vnrebates.net/sitemap.xml
+Host: https://new.vnrebates.net

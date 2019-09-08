@@ -1,0 +1,2 @@
+(window.webpackJsonp=window.webpackJsonp||[]).push([[5],{297:function(e,t,n){"use strict";n.r(t);var r=n(0),a=n.n(r),i=(n(4),n(291),n(290));t.default=function(){return a.a.createElement(r.Fragment,null,a.a.createElement(i.a,{title:"Advertising - Vnrebates"}),a.a.createElement("iframe",{src:"https://anhthieu1912_bc29.gr8.com/?fbclid=IwAR3217ZtWYbeb-noz_yofbGx2sUziRi2NQmK7fzOxBUAYb5C6ChQukDhfxI",style:{width:"100%",height:"100%"},frameBorder:0}))}}}]);
+//# sourceMappingURL=component---src-pages-advertising-js-3603be5df255f8ce3404.js.map

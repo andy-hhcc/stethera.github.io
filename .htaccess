@@ -1,0 +1,937 @@
+# Gatsby-Plugin-Htaccess
+# This file is a reduced version of the Apache Server Configs v3.0.0 | MIT License
+# https://github.com/h5bp/server-configs-apache
+
+
+
+# ----------------------------------------------------------------------
+# | Cross-origin images                                                |
+# ----------------------------------------------------------------------
+
+# Send the CORS header for images when browsers request it.
+#
+# https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image
+# https://blog.chromium.org/2011/07/using-cross-domain-images-in-webgl-and.html
+
+<IfModule mod_setenvif.c>
+    <IfModule mod_headers.c>
+        <FilesMatch "\.(bmp|cur|gif|ico|jpe?g|png|svgz?|webp)$">
+            SetEnvIf Origin ":" IS_CORS
+            Header set Access-Control-Allow-Origin "*" env=IS_CORS
+        </FilesMatch>
+    </IfModule>
+</IfModule>
+
+# ----------------------------------------------------------------------
+# | Cross-origin web fonts                                             |
+# ----------------------------------------------------------------------
+
+# Allow cross-origin access to web fonts.
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(eot|otf|tt[cf]|woff2?)$">
+        Header set Access-Control-Allow-Origin "*"
+    </FilesMatch>
+</IfModule>
+
+# ######################################################################
+# # ERRORS                                                             #
+# ######################################################################
+
+# ----------------------------------------------------------------------
+# | Custom error messages/pages                                        |
+# ----------------------------------------------------------------------
+
+# Customize what Apache returns to the client in case of an error.
+# https://httpd.apache.org/docs/current/mod/core.html#errordocument
+
+ErrorDocument 404 /404/index.html
+
+# ----------------------------------------------------------------------
+# | Error prevention                                                   |
+# ----------------------------------------------------------------------
+
+# Disable the pattern matching based on filenames.
+#
+# This setting prevents Apache from returning a 404 error as the result
+# of a rewrite when the directory with the same name does not exist.
+#
+# https://httpd.apache.org/docs/current/content-negotiation.html#multiviews
+
+Options -MultiViews
+
+# ######################################################################
+# # MEDIA TYPES AND CHARACTER ENCODINGS                                #
+# ######################################################################
+
+# ----------------------------------------------------------------------
+# | Media types                                                        |
+# ----------------------------------------------------------------------
+
+# Serve resources with the proper media types (f.k.a. MIME types).
+#
+# https://www.iana.org/assignments/media-types/media-types.xhtml
+# https://httpd.apache.org/docs/current/mod/mod_mime.html#addtype
+
+<IfModule mod_mime.c>
+
+  # Data interchange
+    AddType application/atom+xml                        atom
+    AddType application/json                            json map topojson
+    AddType application/ld+json                         jsonld
+    AddType application/rss+xml                         rss
+    AddType application/vnd.geo+json                    geojson
+    AddType application/xml                             rdf xml
+
+  # JavaScript
+
+    # Servers should use text/javascript for JavaScript resources.
+    # https://html.spec.whatwg.org/multipage/scripting.html#scriptingLanguages
+    AddType text/javascript                             js mjs
+
+  # Manifest files
+    AddType application/manifest+json                   webmanifest
+    AddType application/x-web-app-manifest+json         webapp
+    AddType text/cache-manifest                         appcache
+
+  # Media files
+    AddType audio/mp4                                   f4a f4b m4a
+    AddType audio/ogg                                   oga ogg opus
+    AddType image/bmp                                   bmp
+    AddType image/svg+xml                               svg svgz
+    AddType image/webp                                  webp
+    AddType video/mp4                                   f4v f4p m4v mp4
+    AddType video/ogg                                   ogv
+    AddType video/webm                                  webm
+    AddType video/x-flv                                 flv
+
+    # Serving `.ico` image files with a different media type
+    # prevents Internet Explorer from displaying them as images:
+    # https://github.com/h5bp/html5-boilerplate/commit/37b5fec090d00f38de64b591bcddcb205aadf8ee
+    AddType image/x-icon                                cur ico
+
+  # WebAssembly
+    AddType application/wasm                            wasm
+
+  # Web fonts
+    AddType font/woff                                   woff
+    AddType font/woff2                                  woff2
+    AddType application/vnd.ms-fontobject               eot
+    AddType font/ttf                                    ttf
+    AddType font/collection                             ttc
+    AddType font/otf                                    otf
+
+  # Other
+    AddType application/octet-stream                    safariextz
+    AddType application/x-bb-appworld                   bbaw
+    AddType application/x-chrome-extension              crx
+    AddType application/x-opera-extension               oex
+    AddType application/x-xpinstall                     xpi
+    AddType text/calendar                               ics
+    AddType text/markdown                               markdown md
+    AddType text/vcard                                  vcard vcf
+    AddType text/vnd.rim.location.xloc                  xloc
+    AddType text/vtt                                    vtt
+    AddType text/x-component                            htc
+
+</IfModule>
+
+# ----------------------------------------------------------------------
+# | Character encodings                                                |
+# ----------------------------------------------------------------------
+
+# Serve all resources labeled as `text/html` or `text/plain`
+# with the media type `charset` parameter set to `UTF-8`.
+#
+# https://httpd.apache.org/docs/current/mod/core.html#adddefaultcharset
+
+AddDefaultCharset utf-8
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Serve the following file types with the media type `charset`
+# parameter set to `UTF-8`.
+#
+# https://httpd.apache.org/docs/current/mod/mod_mime.html#addcharset
+
+<IfModule mod_mime.c>
+    AddCharset utf-8 .atom \
+                     .bbaw \
+                     .css \
+                     .geojson \
+                     .ics \
+                     .js \
+                     .json \
+                     .jsonld \
+                     .manifest \
+                     .markdown \
+                     .md \
+                     .mjs \
+                     .rdf \
+                     .rss \
+                     .topojson \
+                     .vtt \
+                     .webapp \
+                     .webmanifest \
+                     .xloc \
+                     .xml
+</IfModule>
+
+# ######################################################################
+# # REWRITES                                                           #
+# ######################################################################
+
+# ----------------------------------------------------------------------
+# | Rewrite engine                                                     |
+# ----------------------------------------------------------------------
+
+# (1) Turn on the rewrite engine (this is necessary in order for
+#     the `RewriteRule` directives to work).
+#
+#     https://httpd.apache.org/docs/current/mod/mod_rewrite.html#RewriteEngine
+#
+# (2) Enable the `FollowSymLinks` option if it isn't already.
+#
+#     https://httpd.apache.org/docs/current/mod/core.html#options
+#
+# (3) If your web host doesn't allow the `FollowSymlinks` option,
+#     you need to comment it out or remove it, and then uncomment
+#     the `Options +SymLinksIfOwnerMatch` line (4), but be aware
+#     of the performance impact.
+#
+#     https://httpd.apache.org/docs/current/misc/perf-tuning.html#symlinks
+#
+# (4) Some cloud hosting services will require you set `RewriteBase`.
+#
+#     https://www.rackspace.com/knowledge_center/frequently-asked-question/why-is-modrewrite-not-working-on-my-site
+#     https://httpd.apache.org/docs/current/mod/mod_rewrite.html#rewritebase
+#
+# (5) Depending on how your server is set up, you may also need to
+#     use the `RewriteOptions` directive to enable some options for
+#     the rewrite engine.
+#
+#     https://httpd.apache.org/docs/current/mod/mod_rewrite.html#rewriteoptions
+#
+# (6) Set %{ENV:PROTO} variable, to allow rewrites to redirect with the
+#     appropriate schema automatically (http or https).
+
+<IfModule mod_rewrite.c>
+
+    # (1)
+    RewriteEngine On
+
+    # (2)
+    ### FOLLOW-SYMLINKS ###
+
+    # (3)
+    
+    Options +SymLinksIfOwnerMatch
+
+
+    # (4)
+    RewriteBase /custom/
+
+    # (5)
+    # RewriteOptions <options>
+
+    # (6)
+    RewriteCond %{HTTPS} =on
+    RewriteRule ^ - [env=proto:https]
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ - [env=proto:http]
+
+</IfModule>
+
+# ----------------------------------------------------------------------
+# | Forcing `https://`                                                 |
+# ----------------------------------------------------------------------
+
+# Redirect from the `http://` to the `https://` version of the URL.
+# https://wiki.apache.org/httpd/RewriteHTTPToHTTPS
+
+
+<IfModule mod_rewrite.c>
+   RewriteEngine On
+   RewriteCond %{HTTP:X-Forwarded-Proto} !https
+   RewriteCond %{HTTPS} off
+   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+</IfModule>
+
+
+
+# ----------------------------------------------------------------------
+# | Normalize Host                                                 |
+# ----------------------------------------------------------------------
+
+# Define the domain, every other domain, that leads to your website, 
+# gets redirected to.
+
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP_HOST} !=new.vnrebates.net
+  RewriteRule (.*) %{ENV:PROTO}://new.vnrebates.net/$1 [R=301,L]
+</IfModule>
+
+
+
+# ----------------------------------------------------------------------
+# | Suppressing the `www.` at the beginning of URLs                    |
+# ----------------------------------------------------------------------
+
+# Rewrite www.example.com → example.com
+
+# The same content should never be available under two different
+# URLs, especially not with and without `www.` at the beginning.
+# This can cause SEO problems (duplicate content), and therefore,
+# you should choose one of the alternatives and redirect the other
+# one.
+#
+# (!) NEVER USE BOTH WWW-RELATED RULES AT THE SAME TIME!
+
+# (1) The rule assume by default that both HTTP and HTTPS
+#     environments are available for redirection.
+#     If your SSL certificate could not handle one of the domains
+#     used during redirection, you should turn the condition on.
+#
+#     https://github.com/h5bp/server-configs-apache/issues/52
+
+### SUPPRESS-WWW ###
+
+# ----------------------------------------------------------------------
+# | Forcing the `www.` at the beginning of URLs                        |
+# ----------------------------------------------------------------------
+
+# Rewrite example.com → www.example.com
+
+# The same content should never be available under two different
+# URLs, especially not with and without `www.` at the beginning.
+# This can cause SEO problems (duplicate content), and therefore,
+# you should choose one of the alternatives and redirect the other
+# one.
+#
+# (!) NEVER USE BOTH WWW-RELATED RULES AT THE SAME TIME!
+
+# (1) The rule assume by default that both HTTP and HTTPS
+#     environments are available for redirection.
+#     If your SSL certificate could not handle one of the domains
+#     used during redirection, you should turn the condition on.
+#
+#     https://github.com/h5bp/server-configs-apache/issues/52
+
+# Be aware that the following might not be a good idea if you use "real"
+# subdomains for certain parts of your website.
+
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # (1)
+    # RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP_HOST} !^www\. [NC]
+    RewriteCond %{SERVER_ADDR} !=127.0.0.1
+    RewriteCond %{SERVER_ADDR} !=::1
+    RewriteRule ^ %{ENV:PROTO}://www.%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+</IfModule>
+
+
+# ----------------------------------------------------------------------
+# | Custom Rewrites                                                    |
+# ----------------------------------------------------------------------
+
+<IfModule mod_rewrite.c>
+
+    RewriteEngine On
+
+    RewriteRule ^not-existing-url/?$ /existing-url [R=301,L,NE]
+
+</IfModule>
+
+
+# ######################################################################
+# # SECURITY                                                           #
+# ######################################################################
+
+# ----------------------------------------------------------------------
+# | File access                                                        |
+# ----------------------------------------------------------------------
+
+# Block access to directories without a default document.
+#
+# You should leave the following uncommented, as you shouldn't allow
+# anyone to surf through every directory on your server (which may
+# includes rather private places such as the CMS's directories).
+
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Block access to all hidden files and directories with the exception of
+# the visible content from within the `/.well-known/` hidden directory.
+#
+# These types of files usually contain user preferences or the preserved
+# state of an utility, and can include rather private places like, for
+# example, the `.git` or `.svn` directories.
+#
+# The `/.well-known/` directory represents the standard (RFC 5785) path
+# prefix for "well-known locations" (e.g.: `/.well-known/manifest.json`,
+# `/.well-known/keybase.txt`), and therefore, access to its visible
+# content should not be blocked.
+#
+# https://www.mnot.net/blog/2010/04/07/well-known
+# https://tools.ietf.org/html/rfc5785
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} "!(^|/)\.well-known/([^./]+./?)+$" [NC]
+    RewriteCond %{SCRIPT_FILENAME} -d [OR]
+    RewriteCond %{SCRIPT_FILENAME} -f
+    RewriteRule "(^|/)\." - [F]
+</IfModule>
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Block access to files that can expose sensitive information.
+#
+# By default, block access to backup and source files that may be
+# left by some text editors and can pose a security risk when anyone
+# has access to them.
+#
+# https://feross.org/cmsploit/
+#
+# (!) Update the `<FilesMatch>` regular expression from below to
+# include any files that might end up on your production server and
+# can expose sensitive information about your website. These files may
+# include: configuration files, files that contain metadata about the
+# project (e.g.: project dependencies), build scripts, etc..
+
+<IfModule mod_authz_core.c>
+    <FilesMatch "(^#.*#|\.(bak|conf|dist|fla|in[ci]|log|orig|psd|sh|sql|sw[op])|~)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+# ----------------------------------------------------------------------
+# | Reducing MIME type security risks                                  |
+# ----------------------------------------------------------------------
+
+# Prevent some browsers from MIME-sniffing the response.
+#
+# This reduces exposure to drive-by download attacks and cross-origin
+# data leaks, and should be left uncommented, especially if the server
+# is serving user-uploaded content or content that could potentially be
+# treated as executable by the browser.
+#
+# https://www.slideshare.net/hasegawayosuke/owasp-hasegawa
+# https://blogs.msdn.microsoft.com/ie/2008/07/02/ie8-security-part-v-comprehensive-protection/
+# https://msdn.microsoft.com/en-us/library/ie/gg622941.aspx
+# https://mimesniff.spec.whatwg.org/
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>
+
+# ----------------------------------------------------------------------
+# | Server-side technology information                                 |
+# ----------------------------------------------------------------------
+
+# Remove the `X-Powered-By` response header that:
+#
+#  * is set by some frameworks and server-side languages
+#    (e.g.: ASP.NET, PHP), and its value contains information
+#    about them (e.g.: their name, version number)
+#
+#  * doesn't provide any value to users, contributes to header
+#    bloat, and in some cases, the information it provides can
+#    expose vulnerabilities
+#
+# (!) If you can, you should disable the `X-Powered-By` header from the
+# language / framework level (e.g.: for PHP, you can do that by setting
+# `expose_php = off` in `php.ini`)
+#
+# https://php.net/manual/en/ini.core.php#ini.expose-php
+
+<IfModule mod_headers.c>
+    Header unset X-Powered-By
+</IfModule>
+
+# ----------------------------------------------------------------------
+# | Server software information                                        |
+# ----------------------------------------------------------------------
+
+# Prevent Apache from adding a trailing footer line containing
+# information about the server to the server-generated documents
+# (e.g.: error messages, directory listings, etc.)
+#
+# https://httpd.apache.org/docs/current/mod/core.html#serversignature
+
+ServerSignature Off
+
+# ######################################################################
+# # WEB PERFORMANCE                                                    #
+# ######################################################################
+
+# ----------------------------------------------------------------------
+# | Compression                                                        |
+# ----------------------------------------------------------------------
+
+<IfModule mod_deflate.c>
+
+    # Force compression for mangled `Accept-Encoding` request headers
+    # https://developer.yahoo.com/blogs/ydn/pushing-beyond-gzipping-25601.html
+
+    <IfModule mod_setenvif.c>
+        <IfModule mod_headers.c>
+            SetEnvIfNoCase ^(Accept-EncodXng|X-cept-Encoding|X{15}|~{15}|-{15})$ ^((gzip|deflate)\s*,?\s*)+|[X~-]{4,13}$ HAVE_Accept-Encoding
+            RequestHeader append Accept-Encoding "gzip,deflate" env=HAVE_Accept-Encoding
+        </IfModule>
+    </IfModule>
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Compress all output labeled with one of the following media types.
+    # https://httpd.apache.org/docs/current/mod/mod_filter.html#addoutputfilterbytype
+
+    <IfModule mod_filter.c>
+        AddOutputFilterByType DEFLATE "application/atom+xml" \
+                                      "application/javascript" \
+                                      "application/json" \
+                                      "application/ld+json" \
+                                      "application/manifest+json" \
+                                      "application/rdf+xml" \
+                                      "application/rss+xml" \
+                                      "application/schema+json" \
+                                      "application/vnd.geo+json" \
+                                      "application/vnd.ms-fontobject" \
+                                      "application/wasm" \
+                                      "application/x-font-ttf" \
+                                      "application/x-javascript" \
+                                      "application/x-web-app-manifest+json" \
+                                      "application/xhtml+xml" \
+                                      "application/xml" \
+                                      "font/collection" \
+                                      "font/eot" \
+                                      "font/opentype" \
+                                      "font/otf" \
+                                      "font/ttf" \
+                                      "image/bmp" \
+                                      "image/svg+xml" \
+                                      "image/vnd.microsoft.icon" \
+                                      "image/x-icon" \
+                                      "text/cache-manifest" \
+                                      "text/calendar" \
+                                      "text/css" \
+                                      "text/html" \
+                                      "text/javascript" \
+                                      "text/plain" \
+                                      "text/markdown" \
+                                      "text/vcard" \
+                                      "text/vnd.rim.location.xloc" \
+                                      "text/vtt" \
+                                      "text/x-component" \
+                                      "text/x-cross-domain-policy" \
+                                      "text/xml"
+
+    </IfModule>
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Map the following filename extensions to the specified
+    # encoding type in order to make Apache serve the file types
+    # with the appropriate `Content-Encoding` response header
+    # (do note that this will NOT make Apache compress them!).
+    #
+    # If these files types would be served without an appropriate
+    # `Content-Enable` response header, client applications (e.g.:
+    # browsers) wouldn't know that they first need to uncompress
+    # the response, and thus, wouldn't be able to understand the
+    # content.
+    #
+    # https://httpd.apache.org/docs/current/mod/mod_mime.html#addencoding
+
+    <IfModule mod_mime.c>
+        AddEncoding gzip              svgz
+    </IfModule>
+
+</IfModule>
+
+
+# ----------------------------------------------------------------------
+# | ETags                                                              |
+# ----------------------------------------------------------------------
+
+# Remove `ETags` as resources are sent with far-future expires headers.
+#
+# https://developer.yahoo.com/performance/rules.html#etags
+# https://tools.ietf.org/html/rfc7232#section-2.3
+
+# `FileETag None` doesn't work in all cases.
+<IfModule mod_headers.c>
+    Header unset ETag
+</IfModule>
+
+FileETag None
+
+# ----------------------------------------------------------------------
+# | Expires headers                                                    |
+# ----------------------------------------------------------------------
+
+# This matches the settings descriped at: 
+# https://www.gatsbyjs.org/docs/caching/
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(html|json)$">
+        Header set Cache-Control "public, max-age=0, must-revalidate"
+    </FilesMatch>
+    <FilesMatch "\.(js|css)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    <Files sw.js>
+        Header set Cache-Control "public, max-age=0, must-revalidate"
+    </Files>
+</IfModule>
+
+
+# ----------------------------------------------------------------------
+# | Custom Rules                                                       |
+# ----------------------------------------------------------------------
+
+
+            # Copy from RankMath
+            <IfModule mod_rewrite.c>
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/​cac\-cong\-cu\-giup\-tien\-doan\-thi\-truong\-cua\-phan\-tich\-ky\-thuat\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/cong-cu-giup-tien-doan-thi-truong-cua-phan-tich-ky-thuat.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cac\-cong\-cu\-giup\-tien\-doan\-thi\-truong\-cua\-phan\-tich\-ky\-thuat\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/cong-cu-giup-tien-doan-thi-truong-cua-phan-tich-ky-thuat.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-nghiem\-dau\-tu\-forex\-nhung\-bi\-mat\-ve\-tien\-thuong\-khi\-nap\-tien\-ma\-ban\-co\-the\-khong\-biet\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/cach-che-thong-tin-the-visa-master-khi-nap-tien-vao-san-vang-the-gioi.html [R=301,L]
+RewriteRule ^tin\-forex/co\-nen\-dau\-tu\-vao\-vang\-trong\-thoi\-diem\-hien\-nay\-khong\-\.html$ https://vnrebates.net/tin-forex/co-nen-dau-tu-vang-trong-thoi-diem-nay-khong.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ban\-chat\-that\-su\-cua\-cac\-san\-ecn\-stp\-va\-market\-maker\-la\-gi\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/ban-chat-that-su-cua-cac-san-ecn-stp-va-market-maker-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/hoc\-phan\-tich\-ki\-thuat\-lam\-the\-nao\-de\-bat\-duoc\-song\-lon\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/hoc-phan-tich-ki-thuatlam-the-nao-de-bat-duoc-song-lon.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-nghiem\-dau\-tu\-forex\-khoang\-thoi\-gian\-tot\-nhat\-de\-giao\-dich\-cap\-eur\-usd\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phan-tich-forex-khoang-thoi-gian-tot-nhat-de-giao-dich-cap-usd-jpy.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-co\-la\-gi\-rui\-ro\-cua\-dau\-co\-trong\-thi\-truong\-forex$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/dau-co-la-gi-2.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/lich\-su\-ra\-doi\-cua\-san\-giao\-dich\-vang\-san\-forex\-tren\-the\-gioi$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/lich-su-ra-doi-cua-san-giao-dich-vang-san-forex-tren-the-gioi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ban\-khong\-la\-gi\-rui\-ro\-cua\-ban\-khong\-trong\-thi\-truong\-forex$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/ban-khong-la-gi-rui-ro-cua-ban-khong-trong-thi-truong-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-tich\-forex\-khoang\-thoi\-gian\-tot\-nhat\-de\-giao\-dich\-cap\-usd\-jpy$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phan-tich-forex-khoang-thoi-gian-tot-nhat-de-giao-dich-cap-usd-jpy.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/3\-nguyen\-tac\-dat\-lenh\-dung\-lo\-trong\-kinh\-doanh\-forex$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/3-nguyen-tac-dat-lenh-dung-lo-trong-kinh-doanh-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-mem\-forex\-nao\-la\-tot\-nhat\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phan-mem-forex-nao-la-tot-nhat.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/lua\-chon\-san\-giao\-dich\-forex\-phu\-hop\-de\-giam\-thieu\-chi\-phi$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/lua-chon-san-giao-dich-forex-phu-hop-de-giam-thieu-chi-phi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/tai\-khoan\-demo\-trong\-forex\-la\-gi\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/tai-khoan-demo-trong-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/he\-thong\-giao\-dich\-forex\-su\-dung\-su\-phan\-ki\-cua\-macd$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/he-thong-giao-dich-forex-su-dung-su-phan-ki-cua-macd.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/co\-nen\-dau\-tu\-vang\-voi\-nhung\-uu\-diem\-va\-nhuoc\-diem\-nay\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/co-nen-dau-tu-vang-voi-nhung-uu-diem-va-nhuoc-diem-nay.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kien\-thuc\-forex\-co\-ban$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/kien-thuc-forex-co-ban.html [R=301,L]
+RewriteRule ^tin\-forex/cac\-chuc\-nang\-cua\-thi\-truong\-ngoai\-hoi$ https://vnrebates.net/tin-forex/cac-chuc-nang-cua-thi-truong-ngoai-hoi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/lam\-the\-nao\-de\-su\-dung\-bollinger\-band\-trong\-phan\-tich\-ki\-thuat\-forex\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/lam-the-nao-de-su-dung-bollinger-band-trong-phan-tich-ki-thuat-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/10\-ly\-do\-vi\-sao\-ban\-nen\-choi\-forex\-$ https://vnrebates.net/forex/choi-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ban\-chat\-that\-su\-cua\-cac\-san\-ecn\-stp\-va\-market\-marker\-la\-gi\-phan\-2\-$ https://vnrebates.net/forex/san-ecn-stp-va-market-maker-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/mua\-ban\-fx\-khi\-nao\-mua\-hoac\-ban\-mot\-cap\-tien\-te$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/mua-ban-fx-khi-nao-mua-hoac-ban-mot-cap-tien-te.httml [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/mo\-tai\-khoan\-forex\-tai\-san\-nao\-thi\-an\-toan\-nhat\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/mo-tai-khoan-forex-tai-san-nao-thi-an-toan-nhat.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cac\-san\-forex\-uy\-tin$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/cac-san-forex-uy-tin.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/fca\-uk\-giam\-sat\-va\-quan\-ly\-cac\-forex\-broker\-nhu\-the\-nao\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/fca-uk-giam-sat-va-quan-ly-cac-forex-broker-nhu-the-nao.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/lam\-giau\-tu\-forex\-bang\-cap\-tien\-te\-eur\-usd$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/lam-giau-tu-forex-bang-cap-tien-te-eur-usd.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/bollinger\-bands\-la\-gi\-va\-cach\-dung\-trong\-giao\-dich\-forex$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/bollinger-bands-la-gi-va-cach-dung-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^tin\-forex/foreign\-exchange\-la\-gi\-$ https://vnrebates.net/tin-forex/foreign-exchange-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/bid\-ask\-spread\-trong\-forex\-la\-gi\-$ https://vnrebates.net/forex/bid-ask-spread-trong-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/hoc\-phan\-tich\-ky\-thuat\-trong\-giao\-dich\-forex$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/hoc-phan-tich-ky-thuat-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/huong\-dan\-choi\-forex\-cho\-nguoi\-moi\-bat\-dau$ https://vnrebates.net/forex/cach-choi-forex-hieu-qua.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/chien\-luoc\-kinh\-doanh\-vang\-cong\-cu\-xau\-usd$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chien-luoc-kinh-doanh-vang-cong-cu-xau-usd.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/11\-loi\-khuyen\-sau\-sac\-tu\-cac\-trader\-chuyen\-nghiep$ https://vnrebates.net/forex/11-loi-khuyen-sau-sac-tu-cac-trader-chuyen-nghiep.html [R=301,L]
+RewriteRule ^blog/thong\-bao\-tu\-broker/san\-hotforex\-gioi\-thieu\-tai\-khoan\-moi\-zero\-spread\-$ https://vnrebates.net/blog/thong-bao-tu-broker/san-hotforex-gioi-thieu-tai-khoan-moi-zero-spread.html [R=301,L]
+RewriteRule ^tin\-forex/nhung\-cau\-hoi\-thuong\-gap\-ve\-dau\-tu\-ngoai\-hoi$ https://vnrebates.net/tin-forex/nhung-cau-hoi-thuong-gap-ve-dau-tu-ngoai-hoi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-tich\-ki\-thuat\-li\-thuyet\-song\-elliot$ https://vnrebates.net/forex/li-thuyet-song-elliot.html [R=301,L]
+RewriteRule ^tin\-forex/nhung\-dieu\-can\-biet\-khi\-bat\-dau\-choi\-forex$ https://vnrebates.net/tin-forex/nhung-dieu-can-biet-khi-bat-dau-choi-forex.html [R=301,L]
+RewriteRule ^ve\-chung\-toi$ https://vnrebates.net/ve-chung-toi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-la\-chien\-luoc\-forex\-mang\-lai\-nhieu\-loi\-nhuan\-nhat\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/dau-la-chien-luoc-forex-mang-lai-nhieu-loi-nhuan-nhat.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/nhung\-cap\-tien\-te\-de\-du\-doan\-nhat\-trong\-kenh\-dau\-tu\-forex\-nam\-2017$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/nhung-cap-tien-te-de-du-doan-nhat-trong-kenh-dau-tu-forex-nam-2017.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/gio\-giao\-dich\-forex\-tot\-nhat\-la\-khi\-nao\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/gio-giao-dich-forex-tot-nhat-la-khi-nao.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/san\-ecn\-trong\-forex\-la\-gi\-$ https://vnrebates.net/forex/san-ecn-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/6\-cach\-dau\-tu\-hieu\-qua\-nho\-chien\-luoc\-phan\-bo\-tai\-san$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/6-cach-dau-tu-hieu-qua-nho-chien-luoc-phan-bo-tai-san.html [R=301,L]
+RewriteRule ^lien\-he$ https://vnrebates.net/lien-he.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/nhung\-rui\-ro\-can\-luu\-y\-khi\-dau\-tu\-forex$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/nhung-rui-ro-can-luu-y-khi-dau-tu-forex.html [R=301,L]
+RewriteRule ^tin\-forex/dau\-tu\-gi\-de\-kiem\-tien\-tren\-thi\-truong\-tai\-chinh\-$ https://vnrebates.net/tin-forex/dau-tu-gi-de-kiem-tien-tren-thi-truong-tai-chinh.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-chot\-loi\-hieu\-qua\-trong\-giao\-dich\-forex$ https://vnrebates.net/forex/cach-chot-loi-hieu-qua-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-tu\-ngoai\-hoi\-la\-gi\-cac\-yeu\-to\-co\-ban\-trong\-thi\-truong\-ngoai\-hoi$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/dau-tu-ngoai-hoi-la-gi-cac-yeu-to-co-ban-trong-thi-truong-ngoai-hoi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/thu\-nghiem\-phuong\-phap\-giao\-dich\-dao\-nguoc$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/thu-nghiem-phuong-phap-giao-dich-dao-nguoc.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/thiet\-lap\-chien\-luoc\-forex\-hieu\-qua\-nhu\-the\-nao\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/thiet-lap-chien-luoc-forex-hieu-qua-nhu-the-nao.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/6\-trang\-web\-ve\-forex\-hang\-dau\-giup\-ban\-tra\-loi\-cau\-hoi\-hoc\-forex\-o\-dau\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/6-trang-web-ve-forex-hang-dau-giup-ban-tra-loi-cau-hoi-hoc-forex-o-dau.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/huong\-dan\-forex\-tu\-nhung\-kien\-thuc\-co\-ban\-nhat$ https://vnrebates.net/forex/huong-dan-forex-co-ban.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ban\-khong\-la\-gi\-va\-mot\-so\-dieu\-ban\-can\-biet\-ve\-ban\-khong$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/ban-khong-la-gi-2.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/lam\-the\-nao\-de\-tranh\-lua\-dao\-tren\-cac\-san\-forex\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/lam-the-nao-de-tranh-lua-dao-tren-cac-san-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/chien\-thuat\-giao\-dich\-moi\-tuan\-chi\-mot\-giao\-dich$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chien-thuat-giao-dich-moi-tuan-chi-mot-giao-dich.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/fx\-la\-gi\-$ https://vnrebates.net/forex/thi-truong-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/top\-5\-cac\-chi\-so\-tai\-chinh\-co\-ban\-trong\-forex\-phan\-2\-$ https://vnrebates.net/forex/cac-chi-so-tai-chinh-co-ban-trong-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-choi\-forex\-hieu\-qua$ https://vnrebates.net/forex/cach-choi-forex-hieu-qua.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/top\-10\-san\-forex\-dang\-ki\-tai\-anh$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/top-10-san-forex-dang-ki-tai-anh.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-doanh\-forex\-tai\-sao\-ban\-hay\-bi\-mat\-tien\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/kinh-doanh-forex-tai-sao-ban-hay-bi-mat-tien.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/co\-nen\-choi\-forex\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/co-nen-choi-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/10\-cach\-kiem\-tien\-voi\-forex$ https://vnrebates.net/forex/10-cach-kiem-tien-tu-forex-trading.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-dau\-tu\-vang\-online\-cho\-nguoi\-moi\-bat\-dau\-tren\-thi\-truong\-forex$ https://vnrebates.net/dau-tu/loi-khuyen-ve-cach-dau-tu-vang-hieu-qua.html [R=301,L]
+RewriteRule ^forex/nhung\-cap\-tien\-te\-dang\-giao\-dich\-nhat\.html$ https://vnrebates.net/forex/nhung-cap-tien-te-dang-giao-dich.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-choi\-vang\-va\-bac\-tren\-phan\-mem\-forex$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/cach-choi-vang-va-bac-tren-phan-mem-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/gio\-giao\-dich\-forex\-tot\-nhat$ https://vnrebates.net/forex/gio-giao-dich-forex-tot-nhat.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/nhung\-bi\-mat\-thanh\-cong\-trong\-kinh\-doanh\-ngoai\-hoi$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/nhung-bi-mat-thanh-cong-trong-kinh-doanh-ngoai-hoi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-tich\-ki\-thuat\-forex\-ichimoku\-kinko\-hyo$ https://vnrebates.net/forex/ichimoku-kinko-hyo.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kiem\-tien\-forex\-voi\-nhung\-cap\-tien\-te\-dang\-giao\-dich\-nhat$ https://vnrebates.net/forex/nhung-cap-tien-te-dang-giao-dich.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/9\-bi\-quyet\-dau\-tu\-forex\-cua\-cac\-trader\-thanh\-cong$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/9-bi-quyet-dau-tu-forex-cua-cac-trader-thanh-cong.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ban\-chat\-that\-su\-cua\-cac\-san\-ecn\-stp\-va\-market\-maker\-la\-gi\-$ https://vnrebates.net/forex/san-ecn-stp-va-market-maker-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-choi\-ngoai\-hoi\-cho\-nguoi\-moi\-bat\-dau$ https://vnrebates.net/forex/choi-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cac\-yeu\-to\-anh\-huong\-den\-gia\-vang\-tren\-thi\-truong\-vang$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/cac-yeu-to-anh-huong-den-gia-vang-tren-thi-truong-vang.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/scalping\-la\-gi\-ban\-co\-phu\-hop\-voi\-kieu\-giao\-dich\-nay\-khong\-$ https://vnrebates.net/forex/scalping-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/10\-quyen\-sach\-phan\-tich\-ki\-thuat\-yeu\-thich\-cua\-toi$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/sach-phan-tich-ki-thuat.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/thuan\-loi\-bat\-loi\-cua\-vang\-va\-cach\-dau\-tu\-vang\-hieu\-qua$ https://vnrebates.net/dau-tu/dau-tu-vang-nhu-the-nao.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/chien\-luoc\-giao\-dich\-forex\-giao\-dich\-arbitrage$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chien-luoc-giao-dich-forex-giao-dich-arbitrage.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/forex\-trading\-la\-gi\-$ https://vnrebates.net/forex/forex-trading-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/chi\-so\-pmi\-trong\-forex\-quan\-trong\-nhu\-the\-nao\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chi-so-pmi-trong-forex-quan-trong-nhu-the-nao.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/su\-khac\-biet\-giua\-trade\-tai\-khoan\-live\-va\-tai\-khoan\-demo$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/su-khac-biet-giua-trade-tai-khoan-live-va-tai-khoan-demo.html [R=301,L]
+RewriteRule ^tin\-forex/cach\-choi\-vang\-tai\-khoan\-co\-ban$ https://vnrebates.net/tin-forex/cach-choi-vang-tai-khoan-co-ban.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/top\-5\-nhung\-quyen\-sach\-phan\-tich\-ky\-thuat\-hay\-nhat\-ban\-nen\-doc$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/top-5-nhung-quyen-sach-phan-tich-ky-thuat-hay-nhat-ban-nen-doc.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/choi\-ngoai\-hoi\-nhung\-dieu\-co\-ban\-ban\-nen\-biet\-truoc\-khi\-bat\-dau$ https://vnrebates.net/forex/choi-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ke\-hoach\-giao\-dich\-tai\-sao\-ban\-can\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/ke-hoach-giao-dich-tai-sao-ban-can.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-tich\-ky\-thuat\-tu\-a\-den\-z\-cach\-su\-dung\-duong\-trung\-binh\-dong\-moving\-average\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phan-tich-ky-thuat-tu-a-den-zcach-su-dung-duong-trung-binh-dong-moving-average.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/top\-5\-cac\-chi\-so\-tai\-chinh\-co\-ban\-trong\-forex\-phan\-1\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/top-5-cac-chi-so-tai-chinh-co-ban-trong-forex-phan-1.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/giao\-dich\-bang\-nhung\-gi\-ban\-thay\-khong\-phai\-voi\-nhung\-gi\-ban\-nghi\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/ [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-tu\-ngoai\-hoi\-la\-gi\-$ https://vnrebates.net/dau-tu/dau-tu-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/mo\-tai\-khoan\-forex\-o\-dau\-10\-san\-giao\-dich\-forex\-tot\-nhat$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/mo-tai-khoan-forex-o-dau-10-san-giao-dich-forex-tot-nhat.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/bollinger\-bands\-la\-gi\-cong\-cu\-nay\-duoc\-su\-dung\-nhu\-the\-nao\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/bollinger-bands-la-gi-cong-cu-nay-duoc-su-dung-nhu-the-nao.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-nghiem\-giao\-dich\-forex\-phuong\-phap\-chot\-loi\-don\-gian\-va\-hieu\-qua$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/kinh-nghiem-giao-dich-forex-phuong-phap-chot-loi-don-gian-va-hieu-qua.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/xac\-suat\-trong\-dau\-tu\-ngoai\-hoi$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/xac-suat-trong-dau-tu-ngoai-hoi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/san\-stp\-trong\-forex\-la\-gi\-\.html$ https://vnrebates.net/forex/san-stp-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/10\-ly\-do\-vi\-sao\-ban\-nen\-choi\-forex\-\.html$ https://vnrebates.net/forex/choi-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/trader\-la\-gi\-mot\-ngay\-cua\-mot\-trader\-chuyen\-nghiep\-dien\-ra\-nhu\-the\-nao\-\.html$ https://vnrebates.net/forex/trader-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/bollinger\-bands\-la\-gi\-va\-cach\-su\-dung\-chi\-bao\-nay\-nhu\-the\-nao\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/bollinger-bands-la-gi-va-cach-su-dung-chi-bao-nay-nhu-the-nao.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/nhung\-dieu\-ban\-can\-biet\-ve\-choi\-forex\-ao\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/choi-forex-ao.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/chỉ\-bao\-kinh\-te\-la\-gi\-danh\-sach\-chỉ\-bao\-kinh\-te\-day\-dủ\-nhat\-2019\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chi-bao-kinh-te-la-gi-danh-sach-chi-bao-kinh-te-day-du-nhat-2019.html [R=301,L]
+RewriteRule ^tin\-forex/tai\-palestine\-dan\-dung\-nhieu\-bitcoin\-hon\-phien\-quan\-hamas\.html$ https://vnrebates.net/tien-dien-tu/bitcoin/tai-palestine-dan-dung-nhieu-bitcoin-hon-phien-quan-hamas.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/chien\-luoc\-kinh\-doanh\-vang\-bi\-mat\-ve\-loi\-nhuan\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chien-luoc-kinh-doanh-vang.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-co\-la\-gi\-rui\-ro\-cua\-dau\-co\-trong\-thi\-truong\-forex\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/dau-co-la-gi-2.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/moi\-tuong\-quan\-giua\-bien\-dong\-cua\-dong\-usd\-voi\-gia\-vang\-tren\-thi\-truong\-vang\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/moi-tuong-quan-giua-dong-usd-voi-gia-vang.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-tich\-ky\-thuat\-cac\-mo\-hinh\-harmonic\-tren\-thi\-truong\-forex\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/mo-hinh-harmonic.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/hoc\-forex\-lam\-the\-nao\-de\-su\-dung\-chi\-bao\-macd\-trong\-giao\-dich\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chi-bao-macd-2.html [R=301,L]
+# RewriteRule *tin-hieu-forex-ngay-(.*2013.*|.*2014.*|.*2015.*|.*2016.*|.*2017.*|.*2018.*)html https://vnrebates.net/tin-forex/ [R=301,L]
+RewriteRule ^(.*)wp\-json/oembed/1\.0/embed(.*)$ https://vnrebates.net/ [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/huong\-dan\-thoat\-lenh\-giao\-dich\-forex\-thanh\-cong\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/thoat-lenh-forex-2.html [R=301,L]
+# RewriteRule .*)\\/feed https://vnrebates.net/$1 [R=301,L]
+# RewriteRule .*)\\?fbclid. https://vnrebates.net/$1 [R=301,L]
+RewriteRule ^tin\-forex/tin\-forex\-bảng\-anh\-rot\-gia\-khi\-lo\-au\-ve\-brexit\-tang\-cao\.html$ https://vnrebates.net/tin-forex/tin-forex-bang-anh-rot-gia-khi-lo-au-ve-brexit-tang-cao.html [R=301,L]
+RewriteRule ^forex/asic\-australian\-securities\-and\-investments\-commission\-la\-gi\.html$ https://vnrebates.net/blog/asic-australian-securities-and-investments-commission-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/chi\-dan\-ky\-thuat\-5\-cach\-xac\-dinh\-xu\-huong\-thi\-truong\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chi-dan-ky-thuat.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-nghiem\-lam\-giau\-tu\-forex\-3\-dieu\-gia\-nhu\-toi\-biet\-khi\-moi\-giao\-dich\-forex\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/kinh-nghiem-lam-giau-tu-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/chien\-luoc\-giao\-dich\-theo\-inside\-bar\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chien-luoc-giao-dich-voi-inside-bar.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cac\-mau\-hinh\-price\-action\-pin\-bar\-fakey\-inside\-bar\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/price-action.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/5\-quyen\-sach\-huong\-dan\-dau\-tu\-forex\-hieu\-qua\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/5-quyen-sach-forex-huong-dan-dau-tu-hieu-qua.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/quan\-ly\-von\-trong\-giao\-dich\-forex\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/quan-ly-von-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/huong\-dan\-choi\-forex\-he\-thong\-giao\-dich\-may\-moc\-la\-gi\-va\-muc\-tieu\-cua\-no\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/huong-dan-choi-forex.html [R=301,L]
+# RewriteRule .*)/amp https://vnrebates.net/$1 [R=301,L]
+# RewriteRule .*)quen-mat-khauhtml https://vnrebates.net/ [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/10\-quyen\-sach\-phan\-tich\-ki\-thuat\-yeu\-thich\-cua\-toi\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/sach-phan-tich-ki-thuat.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-tich\-ky\-thuat\-tu\-a\-den\-z\-bon\-chi\-bao\-forex\-hieu\-qua\-ma\-moi\-trader\-nen\-biet\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phan-tich-ky-thuat-tu-a-den-zbon-chi-bao-forex-hieu-qua-ma-moi-trader-nen-biet.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/foreign\-exchange\-forex\-hay\-fx\-la\-gi\-$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/foreign-exchange-forex-hay-fx-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/chen\-thanh\-ve\-quan\-ly\-von\-trong\-giao\-dich\-forex$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chen-thanh-ve-quan-ly-von-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/tam\-ly\-giao\-dich\-forex$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/tam-ly-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/tam\-ly\-giao\-dich\-forex$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/tam-ly-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/chen\-thanh\-ve\-quan\-ly\-von\-trong\-giao\-dich\-forex$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chen-thanh-ve-quan-ly-von-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-nghiem\-lam\-giau\-tu\-forex\-3\-dieu\-gia\-nhu\-toi\-biet\-khi\-moi\-giao\-dich\-forex$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/kinh-nghiem-lam-giau-tu-forex-3-dieu-gia-nhu-toi-biet-khi-moi-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/12\-kinh\-nghiem\-dau\-tu\-forex\-toi\-hoc\-duoc\-phan\-i\-\.html$ https://vnrebates.net/forex/12-kinh-nghiem-dau-tu-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kien\-thuc\-can\-ban\-fx\-so\-von\-toi\-thieu\-de\-giao\-dich\-forex\-trong\-ngay\-la\-bao\-nhieu\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/kien-thuc-can-ban-fx-danh-cho-nguoi-moi-bat-dau.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kien\-thuc\-can\-ban\-fx\-so\-von\-toi\-thieu\-de\-giao\-dich\-forex\-trong\-ngay\-la\-bao\-nhieu\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/kien-thuc-can-ban-fx-danh-cho-nguoi-moi-bat-dau.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/scalping\-la\-gi\-ban\-co\-phu\-hop\-voi\-kieu\-giao\-dich\-nay\-khong\-\.html$ https://vnrebates.net/forex/scalping-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/scalping\-la\-gi\-ban\-co\-phu\-hop\-voi\-kieu\-giao\-dich\-nay\-khong\.html$ https://vnrebates.net/forex/scalping-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/bollinger\-bands\-la\-gi\-cong\-cu\-nay\-duoc\-su\-dung\-nhu\-the\-nao\-\.html$ https://vnrebates.net/forex/bollinger-bands-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/bollinger\-bands\-la\-gi\-cong\-cu\-nay\-duoc\-su\-dung\-nhu\-the\-nao\.html$ https://vnrebates.net/forex/bollinger-bands-la-gi.html [R=301,L]
+RewriteCond %{QUERY_STRING} ^\.\*&amp\.\*$
+# RewriteRule .*)\\?.*&amp. https://vnrebates.net/$1 [R=301,L]
+# RewriteRule .*)\\amp https://vnrebates.net/$1 [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/10\-ly\-do\-vi\-sao\-ban\-nen\-choi\-forex\.html$ https://vnrebates.net/forex/choi-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/tim\-hieu\-choi\-forex\-la\-gi\.html$ https://vnrebates.net/forex/choi-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/choi\-forex\-la\-gi\-va\-nhung\-dieu\-can\-chu\-y\-khi\-choi\-forex\.html$ https://vnrebates.net/forex/choi-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/choi\-forex\-nhu\-the\-nao\-de\-thanh\-cong\-$ https://vnrebates.net/forex/choi-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/choi\-forex\-la\-gi\.html$ https://vnrebates.net/forex/choi-forex-la-gi.html [R=301,L]
+RewriteRule ^forex/choi\-forex\-la\-gi\-2\.html$ https://vnrebates.net/forex/choi-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cfd\-la\-gi\-lam\-the\-nao\-de\-lua\-chon\-san\-giao\-dich\-cfd\-\.html$ https://vnrebates.net/forex/cfd-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cfd\-la\-gi\-\.html$ https://vnrebates.net/forex/cfd-la-gi.html [R=301,L]
+RewriteRule ^tin\-forex/hop\-dong\-chenh\-lech\-cfd\-la\-gi\-\.html$ https://vnrebates.net/forex/cfd-la-gi.html [R=301,L]
+RewriteRule ^tin\-forex/hop\-dong\-chenh\-lech\-cfd\-la\-gi\-$ https://vnrebates.net/forex/cfd-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cfd\-la\-gi\-lam\-the\-nao\-de\-lua\-chon\-san\-giao\-dich\-cfd\-$ https://vnrebates.net/forex/cfd-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cfd\-la\-gi\-$ https://vnrebates.net/forex/cfd-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-doanh\-ngoai\-hoi\-la\-gi\-$ https://vnrebates.net/forex/choi-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-choi\-ngoai\-hoi\-trong\-thoi\-gian\-ranh$ https://vnrebates.net/forex/choi-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-doanh\-ngoai\-hoi\-la\-gi\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/kinh-doanh-ngoai-te-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/lam\-the\-nao\-de\-loc\-tin\-hieu\-price\-action\-hanh\-dong\-gia\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chien-luoc-giao-dich-theo-su-chuyen-dong-gia-price-action.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/12\-kinh\-nghiem\-dau\-tu\-forex\-toi\-hoc\-duoc\-phan\-ii\.html$ https://vnrebates.net/forex/12-kinh-nghiem-dau-tu-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/12\-kinh\-nghiem\-dau\-tu\-forex\-toi\-hoc\-duoc\-phan\-i\.html$ https://vnrebates.net/forex/12-kinh-nghiem-dau-tu-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-dau\-tu\-hieu\-qua\-de\-thanh\-cong\-tren\-thi\-truong\-forex\.html$ https://vnrebates.net/dau-tu/dau-tu-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/6\-thu\-trader\-can\-co\-de\-dau\-tu\-forex\-hieu\-qua\.html$ https://vnrebates.net/dau-tu/dau-tu-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/nhung\-dieu\-ban\-can\-biet\-ve\-kenh\-dau\-tu\-forex\.html$ https://vnrebates.net/dau-tu/dau-tu-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/nhung\-dieu\-ban\-can\-biet\-ve\-kenh\-dau\-tu\-forex$ https://vnrebates.net/dau-tu/dau-tu-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-tu\-forex\-la\-gi\.html$ https://vnrebates.net/dau-tu/dau-tu-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/indicator\-la\-gi\-va\-3\-chi\-bao\-pho\-bien\-cho\-giao\-dich\-trong\-ngay$ https://vnrebates.net/forex/indicator-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/indicator\-la\-gi\-indicator\-ki\-thuat\-nao\-la\-tot\-nhat\-khi\-su\-dung\-tren\-thi\-truong\-forex\-$ https://vnrebates.net/forex/indicator-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/indicator\-la\-gi\-indicator\-ki\-thuat\-nao\-la\-tot\-nhat\-khi\-su\-dung\-tren\-thi\-truong\-forex\-\.html$ https://vnrebates.net/forex/indicator-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/lam\-the\-nao\-de\-dau\-tu\-vao\-vang\-\.html$ https://vnrebates.net/dau-tu/dau-tu-vang-nhu-the-nao.html [R=301,L]
+RewriteRule ^tin\-forex/11\-cach\-dau\-tu\-kiem\-tien\-hieu\-qua$ https://vnrebates.net/dau-tu/cach-dau-tu-kiem-tien-hieu-qua.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-doanh\-tai\-chinh\-la\-gi\-va\-nhung\-dieu\-can\-biet\-ve\-kinh\-doanh\-tai\-chinh$ https://vnrebates.net/dau-tu/kinh-doanh-tai-chinh-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/5\-su\-that\-ban\-can\-biet\-khi\-kiem\-tien\-forex$ https://vnrebates.net/forex/5-su-that-ban-can-biet-khi-kiem-tien-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/nap\-rut\-tien\-trong\-forex\-bang\-wire\-transfer\-la\-gi\-$ https://vnrebates.net/forex/wire-transfer-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/nap\-rut\-tien\-trong\-forex\-bang\-wire\-transfer\-la\-gi\-\.html$ https://vnrebates.net/forex/wire-transfer-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cac\-yeu\-to\-anh\-huong\-den\-gia\-vang\-hien\-nay\-theo\-bieu\-do\-gia\-vang\-the\-gioi\.html$ https://vnrebates.net/dau-tu/cac-yeu-to-anh-huong-den-gia-vang.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-dau\-tu\-vang\-hieu\-qua\-dong\-tien\-vang\.html$ https://vnrebates.net/dau-tu/cac-yeu-to-anh-huong-den-gia-vang.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/lam\-the\-nao\-de\-dau\-tu\-vao\-vang\.html$ https://vnrebates.net/dau-tu/dau-tu-vang-nhu-the-nao.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/thuan\-loi\-bat\-loi\-cua\-vang\-va\-cach\-dau\-tu\-vang\-hieu\-qua\.html$ https://vnrebates.net/dau-tu/dau-tu-vang-nhu-the-nao.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-dau\-tu\-vang\-hieu\-qua\-trong\-nam\-2016$ https://vnrebates.net/dau-tu/cach-dau-tu-vang-cho-nguoi-moi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ban\-chat\-that\-su\-cua\-cac\-san\-ecn\-stp\-va\-market\-marker\-la\-gi\-phan\-2\-\.html$ https://vnrebates.net/forex/san-ecn-stp-va-market-maker-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/10\-kinh\-nghiem\-dau\-tu\-vang\-cua\-john\-hathaway\.html$ https://vnrebates.net/dau-tu/loi-khuyen-ve-cach-dau-tu-vang-hieu-qua.html [R=301,L]
+RewriteRule ^tin\-forex/nhung\-loi\-khuyen\-ve\-cach\-dau\-tu\-vang\-hieu\-qua\-cua\-micheal\-j\-kosares\.html$ https://vnrebates.net/dau-tu/loi-khuyen-ve-cach-dau-tu-vang-hieu-qua.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-dau\-tu\-vang\-online\-cho\-nguoi\-moi\-bat\-dau\-tren\-thi\-truong\-forex\.html$ https://vnrebates.net/dau-tu/loi-khuyen-ve-cach-dau-tu-vang-hieu-qua.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/10\-kinh\-nghiem\-dau\-tu\-vang\-cua\-john\-hathaway$ https://vnrebates.net/dau-tu/loi-khuyen-ve-cach-dau-tu-vang-hieu-qua.html [R=301,L]
+RewriteRule ^tin\-forex/nhung\-loi\-khuyen\-ve\-cach\-dau\-tu\-vang\-hieu\-qua\-cua\-micheal\-j\-kosares$ https://vnrebates.net/dau-tu/loi-khuyen-ve-cach-dau-tu-vang-hieu-qua.html [R=301,L]
+RewriteRule ^tin\-forex/vai\-tro\-cua\-cac\-to\-chuc\-dinh\-che\-tai\-chinh\-la\-gi\-\.html$ https://vnrebates.net/forex/dinh-che-tai-chinh.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/san\-stp\-trong\-forex\-la\-gi\-$ https://vnrebates.net/forex/san-stp-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/forex\-broker\-la\-gi\-\.html$ https://vnrebates.net/forex/forex-broker-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/forex\-broker\-la\-gi\-$ https://vnrebates.net/forex/forex-broker-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-choi\-forex\-gold\-de\-dang\-nhat\.html$ https://vnrebates.net/forex/cach-choi-forex-hieu-qua.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/7\-dieu\-ban\-can\-ren\-luyen\-khi\-choi\-forex\-ao$ https://vnrebates.net/forex/cach-choi-forex-hieu-qua.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-choi\-forex\-lam\-the\-nao\-de\-thu\-duoc\-loi\-nhuan\-ben\-vung\-khi\-giao\-dich\-\.html$ https://vnrebates.net/forex/cach-choi-forex-hieu-qua.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-choi\-forex\-viet\-cho\-nguoi\-moi\-bat\-dau\.html$ https://vnrebates.net/forex/cach-choi-forex-hieu-qua.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/huong\-dan\-choi\-forex\-cho\-nguoi\-moi\-bat\-dau\.html$ https://vnrebates.net/forex/cach-choi-forex-hieu-qua.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-choi\-forex\-hieu\-qua\.html$ https://vnrebates.net/forex/cach-choi-forex-hieu-qua.html [R=301,L]
+RewriteRule ^forex/cach\-choi\-forex\-hieu\-qua\-2\.html$ https://vnrebates.net/forex/cach-choi-forex-hieu-qua.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-tich\-ki\-thuat\-forex\-ichimoku\-kinko\-hyo\.html$ https://vnrebates.net/forex/ichimoku-kinko-hyo.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-tich\-ki\-thuat\-forex\-fibonacci\.html$ https://vnrebates.net/forex/fibonacci.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-tich\-ki\-thuat\-li\-thuyet\-song\-elliot\.html$ https://vnrebates.net/forex/li-thuyet-song-elliot.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/top\-5\-cac\-chi\-so\-tai\-chinh\-co\-ban\-trong\-forex\-phan\-2\.html$ https://vnrebates.net/forex/cac-chi-so-tai-chinh-co-ban-trong-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/top\-5\-cac\-chi\-so\-tai\-chinh\-co\-ban\-trong\-forex\-phan\-1\.html$ https://vnrebates.net/forex/cac-chi-so-tai-chinh-co-ban-trong-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ban\-chat\-that\-su\-cua\-cac\-san\-ecn\-stp\-va\-market\-maker\-la\-gi\.html$ https://vnrebates.net/forex/san-ecn-stp-va-market-maker-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ban\-chat\-that\-su\-cua\-cac\-san\-ecn\-stp\-va\-market\-marker\-la\-gi\-phan\-2\.html$ https://vnrebates.net/forex/san-ecn-stp-va-market-maker-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/forex\-broker\-la\-gi\.html$ https://vnrebates.net/forex/forex-broker-la-gi.html [R=301,L]
+RewriteRule ^forex/forex\-broker\-la\-gi\-2\.html$ https://vnrebates.net/forex/forex-broker-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/san\-ecn\-trong\-forex\-la\-gi\.html$ https://vnrebates.net/forex/san-ecn-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/san\-market\-maker\-trong\-forex\-la\-gi\.html$ https://vnrebates.net/forex/san-market-maker-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/san\-stp\-trong\-forex\-la\-gi\.html$ https://vnrebates.net/forex/san-stp-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/trader\-la\-gi\-va\-nhung\-diem\-manh\-yeu\-cua\-nghe\-trader\.html$ https://vnrebates.net/forex/trader-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/trader\-la\-gi\-co\-bao\-nhieu\-kieu\-trader\-pho\-bien\.html$ https://vnrebates.net/forex/trader-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/trader\-la\-gi\-mot\-ngay\-cua\-mot\-trader\-chuyen\-nghiep\-dien\-ra\-nhu\-the\-nao\.html$ https://vnrebates.net/forex/trader-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/nghe\-thuat\-cua\-dau\-co\-la\-gi\.html$ https://vnrebates.net/dau-tu/nghe-thuat-cua-dau-co-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-co\-la\-gi\-su\-khac\-biet\-chinh\-giua\-dau\-tu\-va\-dau\-co\.html$ https://vnrebates.net/dau-tu/dau-co-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-co\-la\-gi\-va\-nghe\-thuat\-dau\-co\.html$ https://vnrebates.net/dau-tu/dau-co-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cfd\-la\-gi\-uu\-diem\-khi\-giao\-dich\-cfd\-so\-voi\-giao\-dich\-truyen\-thong\.html$ https://vnrebates.net/forex/cfd-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/tim\-hieu\-bollinger\-band\-la\-gi\.html$ https://vnrebates.net/forex/bollinger-bands-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cfd\-la\-gi\-no\-hoat\-dong\-nhu\-the\-nao\.html$ https://vnrebates.net/forex/cfd-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-tu\-ngoai\-hoi\-la\-gi\-nhung\-dieu\-ban\-bat\-buoc\-phai\-biet\.html$ https://vnrebates.net/dau-tu/dau-tu-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-co\-la\-gi\-the\.html$ https://vnrebates.net/dau-tu/dau-co-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/forex\-la\-gi\-va\-tai\-sao\-forex\-quan\-trong\.html$ https://vnrebates.net/forex/forex-trading-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dịnh\-che\-tai\-chinh\-la\-gi\-quỹ\-tuong\-hõ\-la\-gi\.html$ https://vnrebates.net/forex/dinh-che-tai-chinh.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cac\-lenh\-duoc\-su\-dung\-trong\-cfd\-la\-gi\.html$ https://vnrebates.net/forex/cfd-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cfd\-la\-gi\-la\-mọt\-hinh\-thuc\-dau\-tu\-hay\-chỉ\-la\-mọt\-tro\-may\-rủi\.html$ https://vnrebates.net/forex/cfd-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ban\-khong\-la\-gi\-tại\-sao\-ban\-khong\-tuy\-don\-giản\-tren\-ly\-thuyet\-nhung\-khong\-dẽ\-tren\-thục\-te\.html$ https://vnrebates.net/forex/ban-khong-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/mo\-tai\-khoan\-forex\-o\-dau\.html$ https://vnrebates.net/forex/10-san-giao-dich-forex-tot-nhat.html [R=301,L]
+RewriteRule ^forex/mo\-tai\-khoan\-forex\-o\-dau\-10\-san\-giao\-dich\-forex\-tot\-nhat\.html$ https://vnrebates.net/forex/10-san-giao-dich-forex-tot-nhat.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/5\-cach\-xac\-dinh\-xu\-huong\-trong\-giao\-dich\-forex\.html$ https://vnrebates.net/forex/5-cach-xac-dinh-xu-huong-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^forex/5\-cach\-xac\-dinh\-xu\-huong\-trong\-giao\-dich\.html$ https://vnrebates.net/forex/5-cach-xac-dinh-xu-huong-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/20\-dieu\-ban\-nen\-biet\-khi\-giao\-dich\-forex\.html$ https://vnrebates.net/forex/20-dieu-ban-nen-biet-khi-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/don\-bay\-va\-margin\-trong\-giao\-dich\-forex\.html$ https://vnrebates.net/forex/don-bay-va-margin-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^forex/tim\-hieu\-ve\-don\-bay\-va\-margin\-trong\-giao\-dich\-forex\.html$ https://vnrebates.net/forex/don-bay-va-margin-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phuong\-phap\-giao\-dich\-forex\-don\-gian\.html$ https://vnrebates.net/forex/phuong-phap-giao-dich-forex-don-gian.html [R=301,L]
+RewriteRule ^forex/phuong\-phap\-giao\-dich\-forex\-don\-gian\-nhat\-the\-gioi\.html$ https://vnrebates.net/forex/phuong-phap-giao-dich-forex-don-gian.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/top\-10\-dien\-dan\-forex\-noi\-tieng\-nhat\.html$ https://vnrebates.net/forex/top-10-dien-dan-forex-noi-tieng-nhat.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/bon\-bi\-quyet\-de\-co\-mot\-diem\-vao\-lenh\-hoan\-hao\.html$ https://vnrebates.net/forex/bon-bi-quyet-de-co-mot-diem-vao-lenh-hoan-hao.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/nap\-rut\-tien\-trong\-forex\-bang\-wire\-transfer\-la\-gi\.html$ https://vnrebates.net/forex/wire-transfer-la-gi.html [R=301,L]
+RewriteRule ^forex/nap\-rut\-tien\-trong\-forex\-bang\-wire\-transfer\-la\-gi\.html$ https://vnrebates.net/forex/wire-transfer-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-chot\-loi\-hieu\-qua\-trong\-giao\-dich\-forex\.html$ https://vnrebates.net/forex/cach-chot-loi-hieu-qua-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/huong\-dan\-forex\-tu\-nhung\-kien\-thuc\-co\-ban\-nhat\.html$ https://vnrebates.net/forex/huong-dan-forex-co-ban.html [R=301,L]
+RewriteRule ^forex/huong\-dan\-forex\-co\-ban\-tu\-nhung\-kien\-thuc\-don\-gian\-nhat\.html$ https://vnrebates.net/forex/huong-dan-forex-co-ban.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/11\-loi\-khuyen\-sau\-sac\-tu\-cac\-trader\-chuyen\-nghiep\.html$ https://vnrebates.net/forex/11-loi-khuyen-sau-sac-tu-cac-trader-chuyen-nghiep.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kiem\-tien\-forex\-voi\-nhung\-cap\-tien\-te\-dang\-giao\-dich\-nhat\.html$ https://vnrebates.net/forex/nhung-cap-tien-te-dang-giao-dich.html [R=301,L]
+RewriteRule ^forex/kiem\-tien\-forex\-voi\-nhung\-cap\-tien\-te\-dang\-giao\-dich\-nhat\.html$ https://vnrebates.net/forex/nhung-cap-tien-te-dang-giao-dich.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kiem\-tien\-tu\-forex\-co\-the\-hay\-khong\-the\.html$ https://vnrebates.net/forex/10-cach-kiem-tien-tu-forex-trading.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/5\-su\-that\-ban\-can\-biet\-khi\-kiem\-tien\-forex\.html$ https://vnrebates.net/forex/5-su-that-ban-can-biet-khi-kiem-tien-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-kiem\-tien\-tu\-forex\-trading\.html$ https://vnrebates.net/forex/10-cach-kiem-tien-tu-forex-trading.html [R=301,L]
+RewriteRule ^forex/10\-cach\-kiem\-tien\-tu\-forex\-trading\-va\-nhung\-chu\-y\-trong\-kiem\-tien\-voi\-forex\.html$ https://vnrebates.net/forex/10-cach-kiem-tien-tu-forex-trading.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-tu\-ngoai\-hoi\-la\-gi\.html$ https://vnrebates.net/dau-tu/dau-tu-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/choi\-ngoai\-hoi\-la\-gi\.html$ https://vnrebates.net/forex/choi-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^forex/choi\-ngoai\-hoi\-la\-gi\-nhung\-dieu\-co\-ban\-ve\-thi\-truong\-ngoai\-hoi\-ban\-nen\-biet\.html$ https://vnrebates.net/forex/choi-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^tin\-forex/toi\-co\-nen\-dau\-tu\-vang\-khong\.html$ https://vnrebates.net/dau-tu/toi-co-nen-dau-tu-vang-khong.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/hoc\-cach\-dau\-tu\-vang\-trong\-4\-buoc\.html$ https://vnrebates.net/dau-tu/hoc-cach-dau-tu-vang-trong-4-buoc.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-dau\-tu\-vang\-cho\-nguoi\-moi\-dau\-tu\.html$ https://vnrebates.net/dau-tu/cach-dau-tu-vang-cho-nguoi-moi.html [R=301,L]
+RewriteRule ^dau\-tu/cach\-dau\-tu\-vang\-cho\-nguoi\-moi\-dau\-tu\.html$ https://vnrebates.net/dau-tu/cach-dau-tu-vang-cho-nguoi-moi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-doanh\-tai\-chinh\-la\-gi\.html$ https://vnrebates.net/dau-tu/kinh-doanh-tai-chinh-la-gi.html [R=301,L]
+RewriteRule ^dau\-tu/kinh\-doanh\-tai\-chinh\-la\-gi\-va\-nhung\-dieu\-can\-biet\-ve\-kinh\-doanh\-tai\-chinh\.html$ https://vnrebates.net/dau-tu/kinh-doanh-tai-chinh-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-doanh\-tien\-te\-la\-gi\.html$ https://vnrebates.net/dau-tu/kinh-doanh-tien-te-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-tu\-tai\-chinh\-la\-gi\.html$ https://vnrebates.net/dau-tu/dau-tu-tai-chinh-la-gi.html [R=301,L]
+RewriteRule ^dau\-tu/dau\-tu\-tai\-chinh\-la\-gi\-phan\-loai\-dau\-tu\-tai\-chinh\-va\-tam\-quan\-trong\-cua\-chung\.html$ https://vnrebates.net/dau-tu/dau-tu-tai-chinh-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dinh\-che\-tai\-chinh\-la\-gi\-vai\-tro\-cua\-dinh\-che\-tai\-chinh\.html$ https://vnrebates.net/forex/dinh-che-tai-chinh.html [R=301,L]
+RewriteRule ^forex/dinh\-che\-tai\-chinh\-la\-gi\-vai\-tro\-cua\-dinh\-che\-tai\-chinh\.html$ https://vnrebates.net/forex/dinh-che-tai-chinh.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/11\-cach\-dau\-tu\-kiem\-tien\-hieu\-qua\.html$ https://vnrebates.net/dau-tu/cach-dau-tu-kiem-tien-hieu-qua.html [R=301,L]
+RewriteRule ^forex/ban\-khong\-la\-gi\-ban\-khong\-trong\-thi\-truong\-forex\.html$ https://vnrebates.net/forex/ban-khong-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/indicator\-la\-gi\.html$ https://vnrebates.net/forex/indicator-la-gi.html [R=301,L]
+RewriteRule ^forex/indicator\-la\-gi\-va\-3\-chi\-bao\-pho\-bien\-cho\-giao\-dich\-trong\-ngay\.html$ https://vnrebates.net/forex/indicator-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/fx\-la\-gi\.html$ https://vnrebates.net/forex/thi-truong-forex-la-gi.html [R=301,L]
+RewriteRule ^forex/fx\-la\-gi\-thi\-truong\-fx\-la\-gi\.html$ https://vnrebates.net/forex/thi-truong-fx-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/scalping\-la\-gi\.html$ https://vnrebates.net/forex/scalping-la-gi.html [R=301,L]
+RewriteRule ^forex/scalping\-la\-gi\-ban\-co\-phu\-hop\-voi\-kieu\-giao\-dich\-nay\-khong\.html$ https://vnrebates.net/forex/scalping-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cfd\-la\-gi\.html$ https://vnrebates.net/forex/cfd-la-gi.html [R=301,L]
+RewriteRule ^forex/cfd\-la\-gi\-lam\-the\-nao\-de\-lua\-chon\-san\-giao\-dich\-cfd\.html$ https://vnrebates.net/forex/cfd-la-gi.html [R=301,L]
+RewriteRule ^tin\-forex/ea\-la\-gi\.html$ https://vnrebates.net/forex/ea-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-mem\-metatrader\-4\-mt4\.html$ https://vnrebates.net/forex/phan-mem-metatrader-4-mt4.html [R=301,L]
+RewriteRule ^forex/huong\-dan\-giao\-dich\-forex\-bang\-phan\-mem\-metatrader\-4\-mt4\.html$ https://vnrebates.net/forex/phan-mem-metatrader-4-mt4.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-biet\-cac\-loai\-hinh\-forex\-broker\.html$ https://vnrebates.net/forex/phan-biet-cac-loai-hinh-forex-broker.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/bid\-ask\-spread\-trong\-forex\-la\-gi\.html$ https://vnrebates.net/forex/bid-ask-spread-trong-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/thi\-truong\-forex\-la\-gi\.html$ https://vnrebates.net/forex/thi-truong-forex-la-gi.html [R=301,L]
+RewriteRule ^forex/thi\-truong\-forex\-la\-gi\-2\.html$ https://vnrebates.net/forex/thi-truong-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/gio\-giao\-dich\-forex\-tot\-nhat\.html$ https://vnrebates.net/forex/gio-giao-dich-forex-tot-nhat.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/bollinger\-bands\-la\-gi\.html$ https://vnrebates.net/forex/bollinger-bands-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/forex\-trading\-la\-gi\.html$ https://vnrebates.net/forex/forex-trading-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-tich\-co\-ban\-forex\-la\-gi\.html$ https://vnrebates.net/forex/phan-tich-co-ban-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/loc\-tin\-hieu\-price\-action\-hanh\-dong\-gia\.html$ https://vnrebates.net/forex/loc-tin-hieu-price-action-hanh-dong-gia.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/mo\-tai\-khoan\-forex\-o\-dau\-10\-san\-giao\-dich\-forex\-tot\-nhat\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/mo-tai-khoan-forex-o-dau.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/thong\-tin\-ve\-fx\-5\-cach\-xac\-dinh\-xu\-huong\-trong\-giao\-dich\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/5-cach-xac-dinh-xu-huong-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/thong\-tin\-ve\-fx\-5\-cach\-xac\-dinh\-xu\-huong\-trong\-giao\-dich\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/5-cach-xac-dinh-xu-huong-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/chien\-luoc\-giao\-dich\-theo\-false\-break\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chien-luoc-giao-dich-theo-false-break.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/lam\-the\-nao\-de\-loc\-tin\-hieu\-price\-action\-hanh\-dong\-gia\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/loc-tin-hieu-price-action-hanh-dong-gia.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-nghiem\-giao\-dich\-forex\-thanh\-cong\-20\-dieu\-ban\-nen\-biet\-khi\-giao\-dich\-forex\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/20-dieu-ban-nen-biet-khi-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/tim\-hieu\-ve\-don\-bay\-va\-margin\-trong\-giao\-dich\-forex\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/don-bay-va-margin-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/tim\-hieu\-ve\-don\-bay\-va\-margin\-trong\-giao\-dich\-forex\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/don-bay-va-margin-trong-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ban\-khong\-la\-gi\-va\-mot\-so\-dieu\-ban\-can\-biet\-ve\-ban\-khong\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/ban-khong-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ban\-khong\-la\-gi\-va\-mot\-so\-dieu\-ban\-can\-biet\-ve\-ban\-khong\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/ban-khong-la-gi-2.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-tich\-co\-ban\-la\-gi\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phan-tich-co-ban-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-tich\-co\-ban\-la\-gi\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phan-tich-co-ban-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/chien\-luoc\-giao\-dich\-forex\-su\-dung\-duong\-ma\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/duong-trung-binh-dong-ma.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/indicator\-la\-gi\-va\-3\-chi\-bao\-pho\-bien\-cho\-giao\-dich\-trong\-ngay\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/indicator-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/fx\-la\-gi\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/fx-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phuong\-phap\-giao\-dich\-don\-gian\-nhat\-the\-gioi\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phuong-phap-giao-dich-forex-don-gian.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phuong\-phap\-giao\-dich\-don\-gian\-nhat\-the\-gioi\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phuong-phap-giao-dich-forex-don-gian.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-tu\-ngoai\-hoi\-la\-gi\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/dau-tu-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/scalping\-la\-gi\-ban\-co\-phu\-hop\-voi\-kieu\-giao\-dich\-nay\-khong\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/scalping-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-doanh\-tai\-chinh\-la\-gi\-va\-nhung\-dieu\-can\-biet\-ve\-kinh\-doanh\-tai\-chinh\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/kinh-doanh-tai-chinh-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-doanh\-tai\-chinh\-la\-gi\-va\-nhung\-dieu\-can\-biet\-ve\-kinh\-doanh\-tai\-chinh\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/kinh-doanh-tai-chinh-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cfd\-la\-gi\-lam\-the\-nao\-de\-lua\-chon\-san\-giao\-dich\-cfd\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/cfd-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/thu\-thuat\-vao\-lenh\-forex\-ban\-can\-phai\-thong\-thao\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/thu-thuat-vao-lenh-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/forex\-trading\-la\-gi\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/forex-trading-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/kinh\-doanh\-ngoai\-hoi\-la\-gi\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/choi-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^tin\-forex/ea\-la\-gi\-va\-cach\-cai\-dat\-ea\-vao\-phan\-mem\-mt4\.html$ https://vnrebates.net/tin-forex/ea-la-gi.html [R=301,L]
+RewriteRule ^tin\-forex/ea\-la\-gi\-va\-cach\-cai\-dat\-ea\-vao\-phan\-mem\-mt4\.html$ https://vnrebates.net/tin-forex/ea-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/huong\-dan\-giao\-dich\-forex\-bang\-phan\-mem\-metatrader\-4\-mt4\-phan\-2\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phan-mem-metatrader-4-mt4.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/huong\-dan\-giao\-dich\-forex\-bang\-phan\-mem\-metatrader\-4\-mt4\-phan\-3\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phan-mem-metatrader-4-mt4.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/huong\-dan\-giao\-dich\-forex\-bang\-phan\-mem\-metatrader\-4\-mt4\-phan\-1\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phan-mem-metatrader-4-mt4.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/huong\-dan\-giao\-dich\-forex\-bang\-phan\-mem\-metatrader\-4\-mt4\-phan\-1\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phan-mem-metatrader-4-mt4.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/bollinger\-bands\-la\-gi\-cong\-cu\-nay\-duoc\-su\-dung\-nhu\-the\-nao\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/bollinger-bands-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/dau\-tu\-tai\-chinh\-la\-gi\-phan\-loai\-dau\-tu\-tai\-chinh\-va\-tam\-quan\-trong\-cua\-chung\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/dau-tu-tai-chinh-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/bollinger\-bands\-la\-gi\-va\-cach\-su\-dung\-chi\-bao\-nay\-nhu\-the\-nao\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/bollinger-bands-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/bollinger\-bands\-la\-gi\-va\-cach\-su\-dung\-chi\-bao\-nay\-nhu\-the\-nao\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/bollinger-bands-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/10\-cach\-kiem\-tien\-voi\-forex\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/cach-kiem-tien-tu-forex-trading.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-kiem\-ra\-tien\-tu\-forex\-trading\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/cach-kiem-tien-tu-forex-trading.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-kiem\-ra\-tien\-tu\-forex\-trading\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/cach-kiem-tien-tu-forex-trading.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/cach\-choi\-ngoai\-hoi\-cho\-nguoi\-moi\-bat\-dau\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/choi-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/choi\-ngoai\-hoi\-nhung\-dieu\-co\-ban\-ban\-nen\-biet\-truoc\-khi\-bat\-dau\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/choi-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/choi\-ngoai\-hoi\-nhung\-dieu\-co\-ban\-ban\-nen\-biet\-truoc\-khi\-bat\-dau\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/choi-ngoai-hoi-la-gi.html [R=301,L]
+RewriteRule ^cryptocurrency\-tien\-dien\-tu/$ https://vnrebates.net/tien-dien-tu/ [R=301,L]
+RewriteRule ^blog/thong\-bao\-tu\-broker/cach\-mo\-tai\-khoan\-forex\-tai\-cac\-san\-giao\-dich\-quoc\-te/$ https://vnrebates.net/blog/thong-bao-tu-broker/cach-mo-tai-khoan-forex-tai-cac-san-giao-dich-quoc-te.html [R=301,L]
+RewriteRule ^blog/thong\-bao\-tu\-broker/dich\-vu\-forex\-rebates\-hoan\-phi\-forex\-la\-gi\-/$ https://vnrebates.net/blog/thong-bao-tu-broker/dich-vu-forex-rebates-hoan-phi-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ke\-hoach\-giao\-dich\-tai\-sao\-ban\-can\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/ke-hoach-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ke\-hoach\-giao\-dich\-tai\-sao\-ban\-can\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/ke-hoach-giao-dich-forex.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phuong\-phap\-giao\-dich\-forex\-dat\-lenh\-va\-quen\-di\-hay\-van\-giu\-cong\-viec\-hang\-ngay\-cua\-ban\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phuong-phap-giao-dich-forex-dat-lenh-va-quen-di.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phuong\-phap\-giao\-dich\-forex\-dat\-lenh\-va\-quen\-di\-hay\-van\-giu\-cong\-viec\-hang\-ngay\-cua\-ban\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phuong-phap-giao-dich-forex-dat-lenh-va-quen-di.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/con\-duong\-thanh\-cong\-trong\-forex\-less\-is\-more\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/con-duong-thanh-cong-trong-forex-less-is-more.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/\-phan\-tich\-ky\-thuat\-la\-gi\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/-phan-tich-ky-thuat-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/phan\-tich\-co\-ban\-la\-gi\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/phan-tich-co-ban-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/ke\-hoach\-giao\-dich\-tai\-sao\-ban\-can\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/ke-hoach-giao-dich-tai-sao-ban-can.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/thi\-truong\-forex\-la\-gi\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/thi-truong-forex-la-gi.html [R=301,L]
+RewriteRule ^blog/kinh\-nghiem\-giao\-dich\-forex/chien\-luoc\-giao\-dich\-theo\-su\-chuyen\-dong\-gia\-price\-action\-\.html$ https://vnrebates.net/blog/kinh-nghiem-giao-dich-forex/chien-luoc-giao-dich-theo-su-chuyen-dong-gia-price-action.html [R=301,L]
+</IfModule>
